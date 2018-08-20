@@ -1,93 +1,68 @@
-/*
-Drafted by Dylan VanDerWal (dylan.vanderwal@townsville.qld.gov.au)
-MIT License
-*/
+/* Drafted by Jordan Mellish (jordan.mellish@townsville.qld.gov.au)
+ * MIT License 
+ * Description: Basic code for sending DHT22(Temperature and Humidity) data to ThingSpeak with a WeMos D1 Pro or D1 Mini  
+ * 
+ */
 
-//Pin that the DHT22 is connected to
-#define DHTPIN D4
-
-/* ---WiFi Information--- */
-//SSID of Network
-const char* ssid = "";
-//Password of Network
-const char* pswd = "";
-
-/* ---Thingspeak Settings--- */
-//Thingspeak API Key
-String APIKey = "";
-//Update interval in seconds, must be greater than 15
-const int interval = 20;
-
-/* -----DO NOT EDIT PAST THIS POINT----- */
-//Import libraries
+/* Import Libraries  */ 
+#include "ThingSpeak.h"
 #include <ESP8266WiFi.h>
 #include <DHT.h>
 
-//Definitions
-#define DHTPIN D4
+/* Definitions */ 
+#define DHTPIN D4 
 #define DHTTYPE DHT22
-DHT dht(DHTPIN, DHTTYPE)
+DHT dht(DHTPIN, DHTTYPE);
 long lastConnectionTime = 0;
+const int interval = 3600;
 
-//define a function
-void connectWiFi();
+/* Wi-Fi Credentials */ 
+char ssid[] = "";    //  your network SSID (name) 
+char pswd[] = "";   // your network password
+int status = WL_IDLE_STATUS;
+WiFiClient  client;
 
+/* ThingSpeak Credentials  */
+unsigned long myChannelNumber = ;
+const char * myWriteAPIKey = "";
 
-//Code that runs once at startup
 void setup() {
-  Serial.begin(115200);
-  dht.begin();
+  Serial.begin(9600); 
+  dht.begin(); 
+  ThingSpeak.begin(client);
 
 }
 
-
-//Code that repeats itself
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) { connectWiFi(); }
+  if (WiFi.status() != WL_CONNECTED) { connectWiFi();}
 
-  if (millis() - lastConnectionTime > (interval*1000)) {
-
-    String postData = (""); //define the initial post data
-
-    //get the data from the DHT22
+  if (millis() - lastConnectionTime > (interval*1000)){
+    
     float h = dht.readHumidity();
     float t = dht.readTemperature();
 
-    // Check if any reads failed and exit early (to try again).
     if (isnan(h) || isnan(t)) {
-      Serial.println("Failed to read from DHT sensor!");
+      Serial.println("Failed to read from DHT Sensor");
       return;
-    } else {
-      String S1 = String(h);
-      String S2 = String(t);
-      postData += ("field1=" + S1 + "&field2=" + S2);
+    } else { 
+    //ThingSpeak.setField(Field No. , data)
+    ThingSpeak.setField(1, h); 
+    ThingSpeak.setField(2, t);  
+
+    ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+    delay(interval * 1000);
     }
-    WiFiClient client;
-    if (client.connect("api.thingspeak.com", 80)) {
-      client.print("POST /update HTTP/1.1\n");
-      client.print("Host: api.thingspeak.com\n");
-      client.print("Connection: close\n");
-      client.print("X-THINGSPEAKAPIKEY: " + APIKey + "\n");
-      client.print("Content-Type: application/x-www-form-urlencoded\n");
-      client.print("Content-Length: ");
-      client.print(postData.length());
-      client.print("\n\n");
-      client.print(postData);
-      String line = client.readStringUntil('\r');   // read all the lines of the reply from server and print them to Serial
-      Serial.println(line);
-    }
-    client.stop();
-    lastConnectionTime = millis();
   }
-  delay(5); // delay to let things reset
+  delay(5);
 }
+
 void connectWiFi() {
   delay(10);
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
-  WiFi.begin(ssid, pswd);
+  WiFi.begin(ssid,pswd);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -96,7 +71,8 @@ void connectWiFi() {
 
   Serial.println("");
   Serial.println("WiFi connected");
-  Serial.println("IP address: ");
+  Serial.println("IP Address :");
   Serial.println(WiFi.localIP());
   Serial.println();
 }
+
