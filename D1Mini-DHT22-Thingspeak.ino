@@ -1,7 +1,7 @@
 /* Drafted by Jordan Mellish (jordan.mellish@townsville.qld.gov.au)
  * MIT License 
- * Description: Basic code for sending DHT22(Temperature and Humidity) data to ThingSpeak with a WeMos D1 Pro or D1 Mini  
- * 
+ * Description: Basic code for sending DHT11(Temperature and Humidity) data to ThingSpeak with a WeMos D1 Pro or D1 Mini  
+ * Including ESP Deep Sleep for 15 minutes.
  */
 
 /* Import Libraries  */ 
@@ -10,50 +10,49 @@
 #include <DHT.h>
 
 /* Definitions */ 
-#define DHTPIN D4 
-#define DHTTYPE DHT22
+#define DHTPIN D3 
+#define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
-long lastConnectionTime = 0;
-const int interval = 3600;
+const int sleepTimeS = 900;
 
 /* Wi-Fi Credentials */ 
-char ssid[] = "";    //  your network SSID (name) 
-char pswd[] = "";   // your network password
+char ssid[] = "YOUR-WIFI-NAME";    //  your network SSID (name) 
+char pswd[] = "YOUR-WIFI-PASSWORD";   // your network password
 int status = WL_IDLE_STATUS;
 WiFiClient  client;
 
 /* ThingSpeak Credentials  */
-unsigned long myChannelNumber = ;
-const char * myWriteAPIKey = "";
+unsigned long myChannelNumber = ; // Enter your channel number from ThingSpeak
+const char * myWriteAPIKey = "YOUR-API-KEY"; //Enter your Write API Key from ThingSpeak
 
 void setup() {
-  Serial.begin(9600); 
+  Serial.begin(115200); 
   dht.begin(); 
   ThingSpeak.begin(client);
-
-}
-
-void loop() {
   if (WiFi.status() != WL_CONNECTED) { connectWiFi();}
-
-  if (millis() - lastConnectionTime > (interval*1000)){
-    
+    Serial.print("I'm Awake");
+    delay(2000);
     float h = dht.readHumidity();
     float t = dht.readTemperature();
-
+    Serial.print(t);
+    Serial.print(h);
     if (isnan(h) || isnan(t)) {
       Serial.println("Failed to read from DHT Sensor");
       return;
     } else { 
     //ThingSpeak.setField(Field No. , data)
-    ThingSpeak.setField(1, h); 
-    ThingSpeak.setField(2, t);  
+    ThingSpeak.setField(1, t); 
+    ThingSpeak.setField(2, h);  
 
     ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-    delay(interval * 1000);
+    delay(2000);
+    Serial.println("Back to sleep");
+    ESP.deepSleep(sleepTimeS * 1000000);
     }
-  }
-  delay(5);
+
+}
+
+void loop() {
 }
 
 void connectWiFi() {
@@ -75,4 +74,3 @@ void connectWiFi() {
   Serial.println(WiFi.localIP());
   Serial.println();
 }
-
